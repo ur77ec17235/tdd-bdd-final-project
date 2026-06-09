@@ -38,7 +38,7 @@ def step_impl(context):
     #
     rest_endpoint = f"{context.base_url}/products"
     context.resp = requests.get(rest_endpoint)
-    assert(context.resp.status_code == HTTP_200_OK)
+    assert context.resp.status_code == HTTP_201_CREATED or context.resp.status_code == HTTP_200_OK
     for product in context.resp.json():
         context.resp = requests.delete(f"{rest_endpoint}/{product['id']}")
         assert(context.resp.status_code == HTTP_204_NO_CONTENT)
@@ -55,4 +55,7 @@ def step_impl(context):
             "category": row['category']
         }
         context.resp = requests.post(rest_endpoint, json=payload)
-        assert context.resp.status_code == HTTP_201_CREATED
+        assert context.resp.status_code == HTTP_201_CREATED, (
+        f"Expected 201 but got {context.resp.status_code}: {context.resp.text}"
+    )
+

@@ -26,13 +26,17 @@ Test cases can be run with the following:
 """
 import os
 import logging
-from decimal import Decimal
 from unittest import TestCase
+from unittest.mock import patch
+from urllib.parse import quote_plus
+from decimal import Decimal
+
+from werkzeug.exceptions import InternalServerError
+
 from service import app
 from service.common import status
-from service.models import db, init_db, Product, Category
+from service.models import db, init_db, Product
 from tests.factories import ProductFactory
-from urllib.parse import quote_plus
 
 # Disable all but critical errors during normal test run
 # uncomment for debugging failing tests
@@ -167,6 +171,16 @@ class TestProductRoutes(TestCase):
     #
     # ADD YOUR TEST CASES HERE
     #
+    def test_unsupported_media_type_put(self):
+        """It should not Update when sending wrong media type"""
+        product = self._create_products(1)[0]
+        response = self.client.put(
+            f"{BASE_URL}/{product.id}",
+            data="",
+            content_type="test/html"
+        )
+        self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+
     def test_get_product(self):
         """It should Get a single Product"""
         # get the id of a product
@@ -256,7 +270,7 @@ class TestProductRoutes(TestCase):
         """It should Query Products by availability"""
         products = self._create_products(10)
         available_products = [product for product in products if product.available is True]
-        available_count = len(available_products)        
+        available_count = len(available_products)
         # test for available
         response = self.client.get(
             BASE_URL, query_string="available=true"
@@ -267,6 +281,26 @@ class TestProductRoutes(TestCase):
         # check the data just to be sure
         for product in data:
             self.assertEqual(product["available"], True)
+
+    def test_unsupported_media_type(self):
+        """It should not Create when sending wrong media type"""
+        response = self.client.post(
+            BASE_URL,
+            data="",
+            content_type="test/html"
+        )
+        self.assertEqual(response.status_code, status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+
+    def test_method_not_allowed(self):
+        """It should not allow an illegal method call"""
+        response = self.client.put(BASE_URL, json={"not": "empty"})
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_internal_server_error(self):
+        """It should return 500 for internal server error"""
+        with patch('service.routes.Product.all', side_effect=InternalServerError()):
+            response = self.client.get(BASE_URL)
+            self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     ######################################################################
     # Utility functions

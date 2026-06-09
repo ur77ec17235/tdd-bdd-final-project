@@ -20,10 +20,9 @@ Product Store Service with UI
 """
 from flask import jsonify, request, abort
 from flask import url_for  # noqa: F401 pylint: disable=unused-import
-from service.models import Product
 from service.common import status  # HTTP Status Codes
+from service.models import Product, Category
 from . import app
-from service.models import db, init_db, Product, Category
 
 
 ######################################################################
@@ -84,15 +83,12 @@ def create_products():
     product.deserialize(data)
     product.create()
     app.logger.info("Product with new id [%s] saved!", product.id)
-
     message = product.serialize()
 
-    #
-    # Uncomment this line of code once you implement READ A PRODUCT
-    #
-    # location_url = url_for("get_products", product_id=product.id, _external=True)
-    location_url = "/"  # delete once READ is implemented
+    # location_url has been updated since READ A PRODUCT is implemented
+    location_url = url_for("get_products", product_id=product.id, _external=True)
     return jsonify(message), status.HTTP_201_CREATED, {"Location": location_url}
+
 
 ######################################################################
 # READ A PRODUCT
@@ -112,6 +108,7 @@ def get_products(product_id):
 
     app.logger.info("Returning product: %s", product.name)
     return product.serialize(), status.HTTP_200_OK
+
 
 ######################################################################
 # UPDATE AN EXISTING PRODUCT
@@ -135,6 +132,7 @@ def update_products(product_id):
     product.update()
     return product.serialize(), status.HTTP_200_OK
 
+
 ######################################################################
 # DELETE A PRODUCT
 ######################################################################
@@ -152,6 +150,7 @@ def delete_products(product_id):
         product.delete()
 
     return "", status.HTTP_204_NO_CONTENT
+
 
 ######################################################################
 # LIST PRODUCTS (Bao gồm List All, Name, Category, Availability)
